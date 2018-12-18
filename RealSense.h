@@ -108,7 +108,7 @@ public:
 	std::string friendly_name;
 
 	std::map<std::string, PCL_Container> clouds;
-	std::vector<std::string> cloud_names = { "camera","tip","hand" };
+	const std::vector<std::string> cloud_names = { "camera","tip","hand" };
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr calcPointCloud(const rs2::points& points);
 	double fps = 0;
