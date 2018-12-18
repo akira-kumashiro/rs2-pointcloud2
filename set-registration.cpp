@@ -69,12 +69,11 @@ public:
 
 	}
 
-	PCD_Container(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, std::string data_type, std::tr2::sys::path file_name) :
+	PCD_Container(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, const std::string data_type, const std::tr2::sys::path file_name) :
 		cloud(cloud),
 		list(file_name, data_type)
 	{
 		list.type = data_type;
-		//show_info();
 	}
 
 	void show_info(void)
@@ -97,7 +96,7 @@ public:
 		std::string serial_number;
 		std::tr2::sys::path file_name;
 
-		Data_List(std::tr2::sys::path file_name, std::string type) :
+		Data_List(const std::tr2::sys::path file_name, const std::string type) :
 			file_name(file_name),
 			type(type)
 		{
@@ -152,7 +151,7 @@ int main(int argc, char** argv)
 	//std::for_each(sys::directory_iterator(p), sys::directory_iterator(),
 		//  再帰的に走査するならコチラ↓
 	std::for_each(sys::recursive_directory_iterator(p), sys::recursive_directory_iterator(),
-		[&pass, point_cloud_data_type](const sys::path& p) //,auto& filePass,auto&folderPass &filePass, &folderPass, 
+		[&pass, point_cloud_data_type, &data, &serial_numbers](const sys::path& p)
 	{
 		const std::string point_cloud_data_extension = ".pcd";
 		const std::string point_cloud_data_identifier = "PCL";
@@ -161,7 +160,15 @@ int main(int argc, char** argv)
 			if (p.string().find(point_cloud_data_identifier) != std::string::npos)
 				for (const auto name : point_cloud_data_type)
 					if (p.string().find(point_cloud_data_identifier + "_" + name) != std::string::npos)
+					{
 						pass[name].push_back(p);
+						pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
+						PCD_Container::Data_List list(p.filename(), name);
+						std::cout << p.string() << std::endl;
+						pcl::io::loadPCDFile(p.string(), *temp);
+						data[name][list.serial_number].push_back(PCD_Container(temp, name, p.filename()));
+						serial_numbers.push_back(list.serial_number);
+					}
 		//if (sys::is_regular_file(p))
 		//{ // ファイルなら...
 		//	std::cout << "file: " << p.filename() << std::endl;
@@ -172,21 +179,19 @@ int main(int argc, char** argv)
 		//}
 	});
 
-	for (const auto& name : point_cloud_data_type)
-	{
-		std::cout << name << std::endl;
-		for (const auto fullpass : pass.at(name))
-		{
-			auto file_name = fullpass.filename();
-			pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
-			std::string name_temp = name;
-			PCD_Container::Data_List list(file_name, name_temp);
-			std::cout << fullpass.string() << std::endl;
-			pcl::io::loadPCDFile(fullpass.string(), *temp);
-			data[name][list.serial_number].push_back(PCD_Container(temp, name, file_name));
-			serial_numbers.push_back(list.serial_number);
-		}
-	}
+	//for (const auto& name : point_cloud_data_type)
+	//{
+	//	std::cout << name << std::endl;
+	//	for (const auto fullpass : pass.at(name))
+	//	{
+	//		pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
+	//		PCD_Container::Data_List list(fullpass.filename(), name);
+	//		std::cout << fullpass.string() << std::endl;
+	//		pcl::io::loadPCDFile(fullpass.string(), *temp);
+	//		data[name][list.serial_number].push_back(PCD_Container(temp, name, fullpass.filename()));
+	//		serial_numbers.push_back(list.serial_number);
+	//	}
+	//}
 
 	std::sort(serial_numbers.begin(), serial_numbers.end());
 	serial_numbers.erase(std::unique(serial_numbers.begin(), serial_numbers.end()), serial_numbers.end());
