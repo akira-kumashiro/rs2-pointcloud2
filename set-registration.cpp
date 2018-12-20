@@ -16,6 +16,8 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/icp_nl.h>
 #include <pcl/registration/transforms.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/visualization/cloud_viewer.h>
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -133,13 +135,21 @@ public:
 int main(int argc, char** argv)
 {
 	namespace sys = std::tr2::sys;
-	std::map<std::string, std::map<std::string, std::vector< PCD_Container>>> data;
+	std::map<std::string, std::map<std::string, std::map<char, std::map<int, PCD_Container>>>> data;
+	//point cloudの種類->シリアルナンバー->文字->番号
+	//std::vector<std::map<std::string, std::map<std::string, PCD_Container>>> data;
 	std::string dataFolderPass;
 	printf_s("data folder pass is:");
 	std::cin >> dataFolderPass;
 	std::map<std::string, std::vector<sys::path>> pass;
+	std::map<std::string, std::map<std::string, Eigen::Matrix4f>> transformMat;
+	std::vector<std::string> matNames = { "handだけ","tip->hand(欠損なし)","tip->hand(欠損あり)" };
+
+	//pclのviewer
+	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer")); //viewerのコンストラクタ
 
 	std::vector<std::string> serial_numbers;
+	std::map<std::string, std::map<char, std::map<int, bool>>> unique_numbers;//文字+番号(ex:ｱ-01)
 
 	std::map<std::string, Eigen::Matrix4f> transformationMat;
 	std::map<std::string, PCL_Regist> regist;
@@ -151,7 +161,7 @@ int main(int argc, char** argv)
 	//std::for_each(sys::directory_iterator(p), sys::directory_iterator(),
 		//  再帰的に走査するならコチラ↓
 	std::for_each(sys::recursive_directory_iterator(p), sys::recursive_directory_iterator(),
-		[&pass, point_cloud_data_type, &data, &serial_numbers](const sys::path& p)
+		[&pass, point_cloud_data_type, &data, &serial_numbers, &unique_numbers](const sys::path& p)
 	{
 		const std::string point_cloud_data_extension = ".pcd";
 		const std::string point_cloud_data_identifier = "PCL";
@@ -166,8 +176,15 @@ int main(int argc, char** argv)
 						PCD_Container::Data_List list(p.filename(), name);
 						std::cout << p.string() << std::endl;
 						pcl::io::loadPCDFile(p.string(), *temp);
-						data[name][list.serial_number].push_back(PCD_Container(temp, name, p.filename()));
+						if (temp->size() < 5)
+						{
+							std::cout << "\"" << p.filename().string() << "\" is too small!" << std::endl;
+							continue;
+						}
+						data[name][list.serial_number][list.character][list.num] = PCD_Container(temp, name, p.filename());
+						//data.push_back(std::make_pair(name, std::make_pair(list.serial_number, PCD_Container(temp, name, p.filename()))));
 						serial_numbers.push_back(list.serial_number);
+						unique_numbers[name][list.character][list.num] = true;
 					}
 		//if (sys::is_regular_file(p))
 		//{ // ファイルなら...
@@ -177,7 +194,49 @@ int main(int argc, char** argv)
 		//{ // ディレクトリなら...
 		//	std::cout << "dir.: " << p.string() << std::endl;
 		//}
-	});
+	});//↓シリアルナンバーの重複の削除
+	std::sort(serial_numbers.begin(), serial_numbers.end());
+	serial_numbers.erase(std::unique(serial_numbers.begin(), serial_numbers.end()), serial_numbers.end());
+
+	for (auto& name : unique_numbers)
+	{
+		for (auto& character : name.second)
+		{
+			for (auto& num : character.second)
+			{
+				for (const auto& serial_number : serial_numbers)
+				{
+					if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
+					{
+						num.second = false;
+					}
+				}
+
+			}
+		}
+	}
+
+	{//tempを外に出したくないがためのかっこ
+		auto temp = unique_numbers;
+		for (auto&name : temp)
+		{
+			for (auto& character : name.second)
+			{
+				for (auto& num : character.second)
+				{
+					if (!(num.second))
+					{
+						for (const auto& serial_number : serial_numbers)
+						{
+							if (data.at(name.first).at(serial_number).at(character.first).count(num.first))
+								data.at(name.first).at(serial_number).at(character.first).erase(num.first);
+						}
+						unique_numbers.at(name.first).at(character.first).erase(num.first);
+					}
+				}
+			}
+		}
+	}
 
 	//for (const auto& name : point_cloud_data_type)
 	//{
@@ -193,19 +252,36 @@ int main(int argc, char** argv)
 	//	}
 	//}
 
-	std::sort(serial_numbers.begin(), serial_numbers.end());
-	serial_numbers.erase(std::unique(serial_numbers.begin(), serial_numbers.end()), serial_numbers.end());
 
-	for (const auto& name : point_cloud_data_type)
+
+	for (const auto& name : unique_numbers)
 	{
+		std::cout << name.first << std::endl;
 		for (const auto& serial_number : serial_numbers)
 		{
-			for (auto& datum : data.at(name).at(serial_number))
+			std::cout << serial_number << std::endl;
+			for (const auto& character : name.second)
 			{
-				datum.show_info();
+				std::cout << character.first << std::endl;
+				for (const auto& num : character.second)
+				{
+					data.at(name.first).at(serial_number).at(character.first).at(num.first).show_info();
+				}
 			}
+			//for (auto& datum : data.at(name).at(serial_number))//dataの単数形がdatumなんだって
+			//{
+				//for (auto&)
+					//datum.show_info();
+				//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, Eigen::Matrix4f::Identity());//, transformMat[i]
+			//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
+				//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_near.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat.at(itr->first));
+				//regist_near.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
+				//transformMat_once.at(itr->first) = transformMat_once.at(itr->first) * regist_once.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat_once.at(itr->first));
+				//regist_once.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
+			//}
 		}
 	}
+
 
 	//fileName = get_file_path_in_dir(dataFolderPass, "pcd");
 
