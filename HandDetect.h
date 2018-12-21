@@ -1,5 +1,8 @@
 #pragma once
 
+//https://github.com/udit043/Hand-Recognition-using-OpenCV
+//Udit Raikwar‚ÌƒvƒƒOƒ‰ƒ€‚ğ‰ü•Ï
+
 #include <opencv/cv.h>
 #include <opencv/cxcore.h>
 #include <opencv/highgui.h>

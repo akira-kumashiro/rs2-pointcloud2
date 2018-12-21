@@ -80,12 +80,12 @@ public:
 
 	void show_info(void)
 	{
-		std::cout << "file_name:" << list.file_name.string() << std::endl;
+		std::cout << "file name:" << list.file_name.string() << std::endl;
 		std::cout << "cloud_num:" << std::to_string(cloud->size()) << std::endl;
-		std::cout << "data_type:" << list.type << std::endl;
-		std::cout << "data_serial_number:" << list.serial_number << std::endl;
-		std::cout << "data_char:" << list.character << std::endl;
-		std::cout << "data_num:" << std::to_string(list.num) << std::endl;
+		std::cout << "type:" << list.type << std::endl;
+		std::cout << "serial number:" << list.serial_number << std::endl;
+		std::cout << "data number:" << list.character << "-"; printf_s("%02d\n", list.num);
+		//std::cout << "data_num:" << std::to_string(list.num) << std::endl;
 	}
 
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud;
@@ -141,19 +141,19 @@ int main(int argc, char** argv)
 	std::string dataFolderPass;
 	printf_s("data folder pass is:");
 	std::cin >> dataFolderPass;
-	std::map<std::string, std::vector<sys::path>> pass;
-	std::map<std::string, std::map<std::string, Eigen::Matrix4f>> transformMat;
+	//std::map<std::string, std::vector<sys::path>> pass;
+	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;//変換行列
+	std::map<std::string, std::map<char, std::map<int, std::map<std::string, PCL_Regist>>>> regist_hand,regist_tip;
 	std::vector<std::string> matNames = { "handだけ","tip->hand(欠損なし)","tip->hand(欠損あり)" };
+	auto matNamesTip(matNames);
+	matNamesTip.erase(matNamesTip.begin());
 
 	//pclのviewer
 	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer")); //viewerのコンストラクタ
 
-	std::vector<std::string> serial_numbers;
+	std::vector<std::string> s_n;//カメラのシリアルナンバー
 	std::map<std::string, std::map<char, std::map<int, bool>>> unique_numbers;//文字+番号(ex:ｱ-01)
-
-	std::map<std::string, Eigen::Matrix4f> transformationMat;
-	std::map<std::string, PCL_Regist> regist;
-
+	
 	const std::vector<std::string> point_cloud_data_type = { "hand","tip" };
 
 	//https://qiita.com/episteme/items/0e3c2ee8a8c03780f01e
@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 	//std::for_each(sys::directory_iterator(p), sys::directory_iterator(),
 		//  再帰的に走査するならコチラ↓
 	std::for_each(sys::recursive_directory_iterator(p), sys::recursive_directory_iterator(),
-		[&pass, point_cloud_data_type, &data, &serial_numbers, &unique_numbers](const sys::path& p)
+		[point_cloud_data_type, &data, &s_n, &unique_numbers, matNames, &tMat,&regist_hand,&regist_tip](const sys::path& p)
 	{
 		const std::string point_cloud_data_extension = ".pcd";
 		const std::string point_cloud_data_identifier = "PCL";
@@ -171,11 +171,18 @@ int main(int argc, char** argv)
 				for (const auto name : point_cloud_data_type)
 					if (p.string().find(point_cloud_data_identifier + "_" + name) != std::string::npos)
 					{
-						pass[name].push_back(p);
+						//pass[name].push_back(p);
 						pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
 						PCD_Container::Data_List list(p.filename(), name);
 						std::cout << p.string() << std::endl;
 						pcl::io::loadPCDFile(p.string(), *temp);
+						for (const auto& matName : matNames)
+						{
+							tMat[list.serial_number][list.character][list.num][matName] = Eigen::Matrix4f::Identity();
+							regist_hand[list.serial_number][list.character][list.num].emplace(matName,PCL_Regist(1e-5, 0.2, 1000, 3, 2.0e-3));
+							if(matName!="handだけ")
+								regist_tip[list.serial_number][list.character][list.num].emplace(matName,PCL_Regist(1e-5, 1.0, 1000, 20, 0.0));
+						}
 						if (temp->size() < 5)
 						{
 							std::cout << "\"" << p.filename().string() << "\" is too small!" << std::endl;
@@ -183,8 +190,9 @@ int main(int argc, char** argv)
 						}
 						data[name][list.serial_number][list.character][list.num] = PCD_Container(temp, name, p.filename());
 						//data.push_back(std::make_pair(name, std::make_pair(list.serial_number, PCD_Container(temp, name, p.filename()))));
-						serial_numbers.push_back(list.serial_number);
+						s_n.push_back(list.serial_number);
 						unique_numbers[name][list.character][list.num] = true;
+
 					}
 		//if (sys::is_regular_file(p))
 		//{ // ファイルなら...
@@ -195,8 +203,8 @@ int main(int argc, char** argv)
 		//	std::cout << "dir.: " << p.string() << std::endl;
 		//}
 	});//↓シリアルナンバーの重複の削除
-	std::sort(serial_numbers.begin(), serial_numbers.end());
-	serial_numbers.erase(std::unique(serial_numbers.begin(), serial_numbers.end()), serial_numbers.end());
+	std::sort(s_n.begin(), s_n.end());
+	s_n.erase(std::unique(s_n.begin(), s_n.end()), s_n.end());
 
 	for (auto& name : unique_numbers)
 	{
@@ -204,7 +212,7 @@ int main(int argc, char** argv)
 		{
 			for (auto& num : character.second)
 			{
-				for (const auto& serial_number : serial_numbers)
+				for (const auto& serial_number : s_n)
 				{
 					if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
 					{
@@ -218,20 +226,52 @@ int main(int argc, char** argv)
 
 	{//tempを外に出したくないがためのかっこ
 		auto temp = unique_numbers;
-		for (auto&name : temp)
+		for (auto&name : temp)//種類
 		{
-			for (auto& character : name.second)
+			for (auto& c : name.second)
 			{
-				for (auto& num : character.second)
+				for (auto& n : c.second)
 				{
-					if (!(num.second))
+					if (!(n.second))//欠けてる番号があるとき
 					{
-						for (const auto& serial_number : serial_numbers)
+						for (const auto& sn : s_n)
 						{
-							if (data.at(name.first).at(serial_number).at(character.first).count(num.first))
-								data.at(name.first).at(serial_number).at(character.first).erase(num.first);
+							if (data.at(name.first).at(sn).at(c.first).count(n.first))
+							{
+								data.at(name.first).at(sn).at(c.first).erase(n.first);
+
+							}
+							for (const auto& matName : matNames)
+							{
+								if (matName == "handだけ")
+									continue;
+								else
+								{
+									if (tMat.at(sn).at(c.first).at(n.first).count(matName))
+										tMat.at(sn).at(c.first).at(n.first).erase(matName);
+									if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
+										regist_tip.at(sn).at(c.first).at(n.first).erase(matName);
+								}
+							}
+							if (name.first == "hand")
+							{
+								for (const auto& matName : matNames)
+								{
+									if (tMat.at(sn).at(c.first).at(n.first).count(matName))
+										tMat.at(sn).at(c.first).at(n.first).erase(matName);
+									if (regist_hand.at(sn).at(c.first).at(n.first).count(matName))
+										regist_hand.at(sn).at(c.first).at(n.first).erase(matName);
+									if (matName == "handだけ")
+										continue;
+									else
+									{
+										if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
+											regist_tip.at(sn).at(c.first).at(n.first).erase(matName);
+									}
+								}
+							}
 						}
-						unique_numbers.at(name.first).at(character.first).erase(num.first);
+						unique_numbers.at(name.first).at(c.first).erase(n.first);
 					}
 				}
 			}
@@ -256,18 +296,49 @@ int main(int argc, char** argv)
 
 	for (const auto& name : unique_numbers)
 	{
-		std::cout << name.first << std::endl;
-		for (const auto& serial_number : serial_numbers)
+		std::cout <<"------------------"<< name.first << "------------------" << std::endl;
+		for (const auto& sn : s_n)
 		{
-			std::cout << serial_number << std::endl;
-			for (const auto& character : name.second)
+			std::cout << sn << std::endl;
+			for (const auto& c : name.second)
 			{
-				std::cout << character.first << std::endl;
-				for (const auto& num : character.second)
+				std::cout << c.first << std::endl;
+				for (const auto& num : c.second)
 				{
-					data.at(name.first).at(serial_number).at(character.first).at(num.first).show_info();
+					data.at(name.first).at(sn).at(c.first).at(num.first).show_info();
+					for (const auto& matName : matNames)
+					{
+						std::cout << matName << ":";
+						if (tMat.at(sn).at(c.first).at(num.first).count(matName))
+						{
+							std::cout << "〇" ;
+						}
+						else
+						{
+							std::cout << "×";
+						}
+						std::cout << ",";
+						if (regist_hand.at(sn).at(c.first).at(num.first).count(matName))
+						{
+							std::cout << "〇";
+						}
+						else
+						{
+							std::cout << "×";
+						}
+						std::cout << ",";
+						if (regist_tip.at(sn).at(c.first).at(num.first).count(matName))
+						{
+							std::cout << "〇" << std::endl;
+						}
+						else
+						{
+							std::cout << "×" << std::endl;
+						}
+					}
 				}
 			}
+			std::cout << std::endl;
 			//for (auto& datum : data.at(name).at(serial_number))//dataの単数形がdatumなんだって
 			//{
 				//for (auto&)
@@ -282,6 +353,18 @@ int main(int argc, char** argv)
 		}
 	}
 
+	for (const auto& c : unique_numbers.at("hand"))
+	{
+		for (const auto& n : c.second)
+		{
+			//const auto beginItr = serial_numbers.begin();
+			for (int i = 1; i < s_n.size(); i++)
+			{
+				if (tMat.at(s_n[i]).at(c.first).at(n.first).count("handだけ"))
+					tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ") = tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ")*regist_hand.at(s_n[i]).at(c.first).at(n.first).at("handだけ").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ"));
+			}
+		}
+	}
 
 	//fileName = get_file_path_in_dir(dataFolderPass, "pcd");
 
