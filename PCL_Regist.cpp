@@ -121,6 +121,11 @@ void PCL_Regist::calcCenterOfGravity(const pcl::PointCloud<pcl::PointXYZRGB>::Pt
 	calcCenterOfGravity(cloud_source, cloud_target, transformMat);
 }
 
+void PCL_Regist::changeParam(double _transformationEpsilon, double _maxCorrespondenceDistance, int _maximumIterations, int _loopNum, double _leafSize)
+{
+	param = PCL_ResistParameters(_transformationEpsilon, _maxCorrespondenceDistance, _maximumIterations, _loopNum, _leafSize);
+}
+
 //(PCL_ResistParameters::VoxelGlid(0.0005), 1e-2, 0.2, 1000, 100);
 
 void PCL_Regist::print4x4Matrix(const Eigen::Matrix4f & matrix)

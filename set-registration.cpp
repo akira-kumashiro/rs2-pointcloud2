@@ -135,25 +135,55 @@ public:
 int main(int argc, char** argv)
 {
 	namespace sys = std::tr2::sys;
+
+	//point cloudの種類(point_cloud_data_type)->シリアルナンバー(s_n)->文字->番号
 	std::map<std::string, std::map<std::string, std::map<char, std::map<int, PCD_Container>>>> data;
-	//point cloudの種類->シリアルナンバー->文字->番号
+
+	//std::mapのアクセス
+	//std::map<key,data> tempのとき
+	//temp[key]←あればアクセス，なければ作成
+	//temp.at(key)←あればアクセス，なければ例外
 	//std::vector<std::map<std::string, std::map<std::string, PCD_Container>>> data;
 	std::string dataFolderPass;
 	printf_s("data folder pass is:");
 	std::cin >> dataFolderPass;
 	//std::map<std::string, std::vector<sys::path>> pass;
-	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;//変換行列
-	std::map<std::string, std::map<char, std::map<int, std::map<std::string, PCL_Regist>>>> regist_hand,regist_tip;
-	std::vector<std::string> matNames = { "handだけ","tip->hand(欠損なし)","tip->hand(欠損あり)" };
+
+	//変換行列(シリアルナンバー(s_n)->文字->番号->行列の名前(matNames))
+	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;
+
+	Eigen::Matrix4f farMat;
+	farMat << 1.0, 0.0, 0.0, 0.0,
+		0.0, 1.0, 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		0.0, 0.0, 0.0, 1.0;
+
+	//変換用のクラス(シリアルナンバー(s_n)->文字->番号->行列の名前(matNames))
+	std::map<std::string, std::map<char, std::map<int, std::map<std::string, PCL_Regist>>>> regist_hand_only, regist_tip, regist_hand_comp;
+
+	std::vector<std::string> matNames = { "handだけ","tip->hand(欠損なし)","tip->hand(欠損なし)-temp","tip->hand(欠損あり)" };
 	auto matNamesTip(matNames);
 	matNamesTip.erase(matNamesTip.begin());
 
 	//pclのviewer
-	//boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer")); //viewerのコンストラクタ
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer")); //viewerのコンストラクタ
 
-	std::vector<std::string> s_n;//カメラのシリアルナンバー
-	std::map<std::string, std::map<char, std::map<int, bool>>> unique_numbers;//文字+番号(ex:ｱ-01)
-	
+	viewer->setBackgroundColor(0, 0, 0);
+	viewer->addCoordinateSystem(0.01);
+	viewer->initCameraParameters();
+
+	int vp_1, vp_2, vp_3, vp_4;
+	viewer->createViewPort(0.0, 0.0, 0.5, 0.5, vp_1);
+	viewer->createViewPort(0.0, 0.5, 0.5, 1.0, vp_2);
+	viewer->createViewPort(0.5, 0.0, 1.0, 0.5, vp_4);
+	viewer->createViewPort(0.5, 0.5, 1.0, 1.0, vp_3);
+
+	//カメラのシリアルナンバー
+	std::vector<std::string> s_n;
+
+	//文字+番号(ex:ｱ-01)がregistration可能かどうか(point cloudの種類(point_cloud_data_type)->文字->番号)
+	std::map<std::string, std::map<char, std::map<int, bool>>> unique_numbers;
+
 	const std::vector<std::string> point_cloud_data_type = { "hand","tip" };
 
 	//https://qiita.com/episteme/items/0e3c2ee8a8c03780f01e
@@ -161,7 +191,7 @@ int main(int argc, char** argv)
 	//std::for_each(sys::directory_iterator(p), sys::directory_iterator(),
 		//  再帰的に走査するならコチラ↓
 	std::for_each(sys::recursive_directory_iterator(p), sys::recursive_directory_iterator(),
-		[point_cloud_data_type, &data, &s_n, &unique_numbers, matNames, &tMat,&regist_hand,&regist_tip](const sys::path& p)
+		[point_cloud_data_type, &data, &s_n, &unique_numbers, matNames, &tMat, &regist_hand_only, &regist_tip, &regist_hand_comp, farMat](const sys::path& p)
 	{
 		const std::string point_cloud_data_extension = ".pcd";
 		const std::string point_cloud_data_identifier = "PCL";
@@ -178,10 +208,13 @@ int main(int argc, char** argv)
 						pcl::io::loadPCDFile(p.string(), *temp);
 						for (const auto& matName : matNames)
 						{
-							tMat[list.serial_number][list.character][list.num][matName] = Eigen::Matrix4f::Identity();
-							regist_hand[list.serial_number][list.character][list.num].emplace(matName,PCL_Regist(1e-5, 0.2, 1000, 3, 2.0e-3));
-							if(matName!="handだけ")
-								regist_tip[list.serial_number][list.character][list.num].emplace(matName,PCL_Regist(1e-5, 1.0, 1000, 20, 0.0));
+							tMat[list.serial_number][list.character][list.num][matName] = farMat;//Eigen::Matrix4f::Identity();
+							regist_hand_only[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-5, 0.2, 300, 10, 2.0e-3));
+							if (matName != "handだけ")
+							{
+								regist_tip[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.2, 10000, 10, 0.0));
+								regist_hand_comp[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-5, 0.2, 300, 10, 2.0e-3));
+							}
 						}
 						if (temp->size() < 5)
 						{
@@ -259,8 +292,8 @@ int main(int argc, char** argv)
 								{
 									if (tMat.at(sn).at(c.first).at(n.first).count(matName))
 										tMat.at(sn).at(c.first).at(n.first).erase(matName);
-									if (regist_hand.at(sn).at(c.first).at(n.first).count(matName))
-										regist_hand.at(sn).at(c.first).at(n.first).erase(matName);
+									if (regist_hand_only.at(sn).at(c.first).at(n.first).count(matName))
+										regist_hand_only.at(sn).at(c.first).at(n.first).erase(matName);
 									if (matName == "handだけ")
 										continue;
 									else
@@ -296,7 +329,7 @@ int main(int argc, char** argv)
 
 	for (const auto& name : unique_numbers)
 	{
-		std::cout <<"------------------"<< name.first << "------------------" << std::endl;
+		std::cout << "------------------" << name.first << "------------------" << std::endl;
 		for (const auto& sn : s_n)
 		{
 			std::cout << sn << std::endl;
@@ -311,14 +344,14 @@ int main(int argc, char** argv)
 						std::cout << matName << ":";
 						if (tMat.at(sn).at(c.first).at(num.first).count(matName))
 						{
-							std::cout << "〇" ;
+							std::cout << "〇";
 						}
 						else
 						{
 							std::cout << "×";
 						}
 						std::cout << ",";
-						if (regist_hand.at(sn).at(c.first).at(num.first).count(matName))
+						if (regist_hand_only.at(sn).at(c.first).at(num.first).count(matName))
 						{
 							std::cout << "〇";
 						}
@@ -357,11 +390,138 @@ int main(int argc, char** argv)
 	{
 		for (const auto& n : c.second)
 		{
-			//const auto beginItr = serial_numbers.begin();
-			for (int i = 1; i < s_n.size(); i++)
+			if (unique_numbers.count("hand"))if (unique_numbers.at("hand").count(c.first))if (unique_numbers.at("hand").at(c.first).count(n.first))if (unique_numbers.at("hand").at(c.first).at(n.first))
 			{
-				if (tMat.at(s_n[i]).at(c.first).at(n.first).count("handだけ"))
-					tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ") = tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ")*regist_hand.at(s_n[i]).at(c.first).at(n.first).at("handだけ").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ"));
+				for (int i = 1; i < s_n.size(); i++)
+				{
+					if (tMat.at(s_n[i]).at(c.first).at(n.first).count("handだけ"))
+					{
+						//
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ") = tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ")*regist_hand_only.at(s_n[i]).at(c.first).at(n.first).at("handだけ").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("handだけ"));
+					}
+				}
+
+				for (const auto& sn : s_n)
+				{
+					auto temp = sn;
+					for (size_t c = temp.find_first_of("0"); c != std::string::npos; c = c = temp.find_first_of("0"))
+					{
+						temp.erase(c, 1);
+					}
+					std::cout << temp << std::endl;
+					int serialNumber;
+					if (temp.size() > 8)
+						serialNumber = std::stoi(temp.substr(temp.size() - 8));
+					else
+						serialNumber = std::stoi(temp);
+					int b = serialNumber % 256;
+					int g = ((serialNumber - b) / 256 % 256);
+					int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+
+					auto cloud = regist_hand_only.at(sn).at(c.first).at(n.first).at("handだけ").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud);
+
+					viewer->removePointCloud("vp_1_" + sn);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColor(cloud, r, g, b);
+					viewer->addPointCloud(cloud, customColor, "vp_1_" + sn, vp_1);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_1_" + sn, vp_1);
+
+					viewer->removePointCloud("vp_4_" + sn);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP4(data.at("hand").at(sn).at(c.first).at(n.first).cloud, r, g, b);
+					viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, customColor, "vp_4_" + sn, vp_4);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_4_" + sn, vp_4);
+					//if (unique_numbers.count("tip"))
+					//	if (unique_numbers.at("tip").count(c.first))
+					//		if (unique_numbers.at("tip").at(c.first).count(n.first))
+					//			if (unique_numbers.at("tip").at(c.first).at(n.first))
+					//			{
+					//				pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTip(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
+					//				viewer->addPointCloud(regist_hand_only.at(sn).at(c.first).at(n.first).at("handだけ").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud), customColorTip, "vp_1_tip_" + sn, vp_1);
+					//				viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_1_tip_" + sn, vp_1);
+					//			}
+
+					viewer->spinOnce();
+				}
+
+				std::cout << "handのみ" << std::endl;
+			}
+
+			if (unique_numbers.count("tip"))if (unique_numbers.at("tip").count(c.first))if (unique_numbers.at("tip").at(c.first).count(n.first))if (unique_numbers.at("tip").at(c.first).at(n.first))
+			{
+				for (int i = 1; i < s_n.size(); i++)
+				{
+					if (tMat.at(s_n[i]).at(c.first).at(n.first).count("tip->hand(欠損なし)"))
+					{
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)")*regist_tip.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)").getTransformMatrix(data.at("tip").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("tip").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)"));
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)-temp") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)");
+						//regist_tip.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)").changeParam(1e-5, 0.2, 300, 10, 2.0e-3);
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)")*regist_hand_comp.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(欠損なし)"));
+					}
+				}
+
+				for (const auto& sn : s_n)
+				{
+					auto temp = sn;
+					for (size_t c = temp.find_first_of("0"); c != std::string::npos; c = c = temp.find_first_of("0"))
+					{
+						temp.erase(c, 1);
+					}
+					std::cout << temp << std::endl;
+					int serialNumber;
+					if (temp.size() > 8)
+						serialNumber = std::stoi(temp.substr(temp.size() - 8));
+					else
+						serialNumber = std::stoi(temp);
+					int b = serialNumber % 256;
+					int g = ((serialNumber - b) / 256 % 256);
+					int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+
+					auto cloudVP2 = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)-temp").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)-temp"));
+					auto cloudVP2tip = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)-temp").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)-temp"));
+
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP2(cloudVP2, r, g, b);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP2(cloudVP2tip, r, g, b);
+
+					viewer->removePointCloud("vp_2_" + sn);
+					viewer->removePointCloud("vp_2_tip_" + sn);
+					viewer->addPointCloud(cloudVP2, customColorVP2, "vp_2_" + sn, vp_2);
+					viewer->addPointCloud(cloudVP2tip, customColorTipVP2, "vp_2_tip_" + sn, vp_2);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_2_" + sn, vp_2);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_2_tip_" + sn, vp_2);
+
+					auto cloudVP3 = regist_hand_comp.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)"));
+					auto cloudVP3tip = regist_hand_comp.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(欠損なし)"));
+
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColor(cloudVP3, r, g, b);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTip(cloudVP3tip, r, g, b);
+
+					viewer->removePointCloud("vp_3_" + sn);
+					viewer->removePointCloud("vp_3_tip_" + sn);
+					viewer->addPointCloud(cloudVP3, customColor, "vp_3_" + sn, vp_3);
+					viewer->addPointCloud(cloudVP3tip, customColorTip, "vp_3_tip_" + sn, vp_3);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_3_" + sn, vp_3);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_3_tip_" + sn, vp_3);
+
+					viewer->removePointCloud("vp_1_tip_" + sn);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP1(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
+					viewer->addPointCloud(regist_hand_only.at(sn).at(c.first).at(n.first).at("handだけ").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud), customColorTipVP1, "vp_1_tip_" + sn, vp_1);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_1_tip_" + sn, vp_1);
+
+					viewer->removePointCloud("vp_4_tip_" + sn);
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP4(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
+					viewer->addPointCloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, customColorTipVP4, "vp_4_tip_" + sn, vp_4);
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_4_tip_" + sn, vp_4);
+					viewer->spinOnce();
+				}
+			}
+			std::cout << "press any key" << std::endl;
+			while (!viewer->wasStopped())
+			{
+				viewer->spinOnce();
+				if (_kbhit())
+				{
+					getch();
+					break;
+				}
 			}
 		}
 	}

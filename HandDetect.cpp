@@ -163,7 +163,7 @@ std::vector<cv::Point> HandDetect::getTipData(cv::Mat depth, cv::Mat color)
 
 						tipPositions.push_back(cv::Point((*(defectArray[i].start)).x, (*(defectArray[i].start)).y));
 
-						tipPositions.push_back(cv::Point((*(defectArray[i].depth_point)).x, (*(defectArray[i].depth_point)).y));
+						//tipPositions.push_back(cv::Point((*(defectArray[i].depth_point)).x, (*(defectArray[i].depth_point)).y));
 						if (i > 0 && (*(defectArray[i - 1].start)).x != (*(defectArray[i].end)).x && (*(defectArray[i - 1].start)).y != (*(defectArray[i].end)).y)
 						{
 							tipPositions.push_back(cv::Point((*(defectArray[i].end)).x, (*(defectArray[i].end)).y));

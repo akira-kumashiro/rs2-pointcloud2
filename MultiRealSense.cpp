@@ -46,7 +46,7 @@ void MultiRealSense::run()
 				if (pair.first == "camera")
 					continue;
 				//viewer->updatePointCloud(pair.second.cloud, pair.second.name);
-				if (switchTransformation)
+				if (!switchTransformation)
 					viewer->updatePointCloud(regist_near.at(realsense.first).transformPointcloud(pair.second.cloud), pair.second.name);
 				else
 					viewer->updatePointCloud(regist_once.at(realsense.first).transformPointcloud(pair.second.cloud), pair.second.name);
@@ -110,7 +110,7 @@ inline void MultiRealSense::initializeSensor(const rs2::device& device)
 	else
 		realsenses.emplace(serial_number, std::make_unique<RealSense>(device));
 
-	regist_near.emplace(serial_number, PCL_Regist(1e-5, 0.2, 1000, 3, 2.0e-3));
+	regist_near.emplace(serial_number, PCL_Regist(1e-5, 0.2, 300, 10, 2.0e-3));
 	regist_tip.emplace(serial_number, PCL_Regist(1e-5, 1.0, 1000, 20, 0.0));
 	regist_once.emplace(serial_number, PCL_Regist(1e-5, 1.0e-10, 1, 1, 0.0));
 	transformMat.emplace(serial_number, Eigen::Matrix4f::Identity());
@@ -179,7 +179,7 @@ bool MultiRealSense::keyboardCallBackSettings(int key)
 				continue;
 			}
 			//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, Eigen::Matrix4f::Identity());//, transformMat[i]
-			//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
+			transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
 			transformMat.at(itr->first) = transformMat.at(itr->first) * regist_near.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat.at(itr->first));
 			//regist_near.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
 			//transformMat_once.at(itr->first) = transformMat_once.at(itr->first) * regist_once.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat_once.at(itr->first));

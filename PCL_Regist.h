@@ -110,6 +110,7 @@ public:
 	Eigen::Matrix4f calcTransformMatrix(float angle);
 	void calcCenterOfGravity(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target, Eigen::Matrix4f transformMatrix);
 	void calcCenterOfGravity(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target);
+	void changeParam(double _transformationEpsilon, double _maxCorrespondenceDistance, int _maximumIterations, int _loopNum, double _leafSize);
 private:
 	//void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<PCD> > &models);
 	void print4x4Matrix(const Eigen::Matrix4f & matrix);

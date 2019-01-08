@@ -519,7 +519,7 @@ void RealSense::setTipCloud()
 		}
 	}
 
-	//cv::imshow("img" + serial_number, colorMappedToDepth);
+	cv::imshow("img" + serial_number, colorMappedToDepth);
 
 	//for (const auto& images : det.imageList)
 	//{
