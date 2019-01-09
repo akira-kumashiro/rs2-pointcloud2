@@ -106,16 +106,17 @@ public:
 	Eigen::Matrix4f getTransformMatrix(const PointCloud::Ptr cloud_source, const PointCloud::Ptr cloud_target, Eigen::Matrix4f prevTransformation);
 	Eigen::Matrix4f getTransformMatrix(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target, Eigen::Matrix4f prevTransformation);
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformPointcloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input);
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformPointcloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input, Eigen::Matrix4f transMat);
+	static pcl::PointCloud<pcl::PointXYZRGB>::Ptr transformPointcloud(pcl::PointCloud<pcl::PointXYZRGB>::Ptr input, Eigen::Matrix4f transMat);
 	Eigen::Matrix4f calcTransformMatrix(float angle);
 	void calcCenterOfGravity(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target, Eigen::Matrix4f transformMatrix);
 	void calcCenterOfGravity(const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_source, const pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_target);
 	void changeParam(double _transformationEpsilon, double _maxCorrespondenceDistance, int _maximumIterations, int _loopNum, double _leafSize);
+	static void print4x4Matrix(const Eigen::Matrix4f & matrix);
 private:
 	//void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<PCD> > &models);
-	void print4x4Matrix(const Eigen::Matrix4f & matrix);
+	Eigen::Matrix4f calcTransformCombined(const Eigen::Matrix4f a, const Eigen::Matrix4f b);
 	double random(double min, double max);
-	void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, Eigen::Matrix4f prevTransformation);
+	Eigen::Matrix4f pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, const Eigen::Matrix4f initial_transform);
 	PointNormalT calcAverage(const PointCloud::Ptr cloud);
 	inline float isNan(float num);
 };

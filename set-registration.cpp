@@ -132,6 +132,16 @@ public:
 	Data_List list;
 };
 
+void pointcloudShifter(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud, double x, double y, double z)
+{
+	for (auto& point : *cloud)
+	{
+		point.x += x;
+		point.y += y;
+		point.z += z;
+	}
+}
+
 int main(int argc, char** argv)
 {
 	namespace sys = std::tr2::sys;
@@ -153,7 +163,7 @@ int main(int argc, char** argv)
 	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;
 
 	Eigen::Matrix4f farMat;
-	farMat << 1.0, 0.0, 0.0, 0.0,
+	farMat << 1.0, 0.0, 0.0, 0.1,
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0;
@@ -208,12 +218,12 @@ int main(int argc, char** argv)
 						pcl::io::loadPCDFile(p.string(), *temp);
 						for (const auto& matName : matNames)
 						{
-							tMat[list.serial_number][list.character][list.num][matName] = farMat;//Eigen::Matrix4f::Identity();
-							regist_hand_only[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-5, 0.2, 300, 10, 2.0e-3));
+							tMat[list.serial_number][list.character][list.num][matName] = Eigen::Matrix4f::Identity();
+							regist_hand_only[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.2, 50, 10, 2.0e-3));
 							if (matName != "hand‚¾‚¯")
 							{
-								regist_tip[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.2, 10000, 10, 0.0));
-								regist_hand_comp[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-5, 0.2, 300, 10, 2.0e-3));
+								regist_tip[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-20, 1.0, 500, 20, 0.0));
+								regist_hand_comp[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.05, 50, 10, 2.0e-3));
 							}
 						}
 						if (temp->size() < 5)
@@ -386,6 +396,20 @@ int main(int argc, char** argv)
 		}
 	}
 
+	//for (auto& data_type : data)
+	//{
+	//	for (int i = 1; i < s_n.size(); i++)
+	//	{
+	//		for (auto& data_char : data_type.second.at(s_n[i]))
+	//		{
+	//			for (auto& data_num : data_char.second)
+	//			{
+	//				pointcloudShifter(data_num.second.cloud, 0.3, 0.0, 0.0);
+	//			}
+	//		}
+	//	}
+	//}
+
 	for (const auto& c : unique_numbers.at("hand"))
 	{
 		for (const auto& n : c.second)
@@ -396,8 +420,9 @@ int main(int argc, char** argv)
 				{
 					if (tMat.at(s_n[i]).at(c.first).at(n.first).count("hand‚¾‚¯"))
 					{
-						//
-						tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯") = tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯")*regist_hand_only.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯"));
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯") = farMat;
+
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯") = regist_hand_only.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("hand‚¾‚¯"));
 					}
 				}
 
@@ -414,20 +439,28 @@ int main(int argc, char** argv)
 						serialNumber = std::stoi(temp.substr(temp.size() - 8));
 					else
 						serialNumber = std::stoi(temp);
-					int b = serialNumber % 256;
-					int g = ((serialNumber - b) / 256 % 256);
-					int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+					//int b = serialNumber % 256;
+					//int g = ((serialNumber - b) / 256 % 256);
+					//int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+					int b = 0;
+					int g = (sn == "611203000018" ? 255 : 0);
+					int r = (sn != "611203000018" ? 255 : 0);
 
-					auto cloud = regist_hand_only.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud);
+
+					//auto cloud = regist_hand_only.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud);
+					auto cloud = PCL_Regist::transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯"));
 
 					viewer->removePointCloud("vp_1_" + sn);
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColor(cloud, r, g, b);
 					viewer->addPointCloud(cloud, customColor, "vp_1_" + sn, vp_1);
+					//viewer->addPointCloud(cloud, "vp_1_" + sn, vp_1);
+
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_1_" + sn, vp_1);
 
 					viewer->removePointCloud("vp_4_" + sn);
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP4(data.at("hand").at(sn).at(c.first).at(n.first).cloud, r, g, b);
 					viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, customColor, "vp_4_" + sn, vp_4);
+					//viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, "vp_4_" + sn, vp_4);
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_4_" + sn, vp_4);
 					//if (unique_numbers.count("tip"))
 					//	if (unique_numbers.at("tip").count(c.first))
@@ -451,10 +484,12 @@ int main(int argc, char** argv)
 				{
 					if (tMat.at(s_n[i]).at(c.first).at(n.first).count("tip->hand(Œ‡‘¹‚È‚µ)"))
 					{
-						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)")*regist_tip.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").getTransformMatrix(data.at("tip").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("tip").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)") = farMat;
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)") = regist_tip.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").getTransformMatrix(data.at("tip").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("tip").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
 						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)");
 						//regist_tip.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").changeParam(1e-5, 0.2, 300, 10, 2.0e-3);
-						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)") = tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)")*regist_hand_comp.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
+						//tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)")*
+						tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)") = regist_hand_comp.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").getTransformMatrix(data.at("hand").at(s_n[0]).at(c.first).at(n.first).cloud, data.at("hand").at(s_n[i]).at(c.first).at(n.first).cloud, tMat.at(s_n[i]).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
 					}
 				}
 
@@ -471,9 +506,12 @@ int main(int argc, char** argv)
 						serialNumber = std::stoi(temp.substr(temp.size() - 8));
 					else
 						serialNumber = std::stoi(temp);
-					int b = serialNumber % 256;
-					int g = ((serialNumber - b) / 256 % 256);
-					int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+					//int b = serialNumber % 256;
+					//int g = ((serialNumber - b) / 256 % 256);
+					//int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
+					int b = 0;
+					int g = (sn == "611203000018" ? 255 : 0);
+					int r = (sn != "611203000018" ? 255 : 0);
 
 					auto cloudVP2 = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp"));
 					auto cloudVP2tip = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp"));
