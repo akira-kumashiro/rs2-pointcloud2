@@ -207,10 +207,8 @@ int main(int argc, char** argv)
 
 	//https://qiita.com/episteme/items/0e3c2ee8a8c03780f01e
 	sys::path p(dataFolderPass); // 列挙の起点
-	//std::for_each(sys::directory_iterator(p), sys::directory_iterator(),
-		//  再帰的に走査するならコチラ↓
 	std::for_each(sys::recursive_directory_iterator(p), sys::recursive_directory_iterator(),
-		[point_cloud_data_type, &data, &s_n, &unique_numbers, matNames, &tMat, &regist_hand_only, &regist_tip, &regist_hand_comp, farMat](const sys::path& p)
+		[point_cloud_data_type, &data, &s_n, &unique_numbers, matNames, &tMat, &regist_hand_only, &regist_tip, &regist_hand_comp](const sys::path& p)
 	{
 		const std::string point_cloud_data_extension = ".pcd";
 		const std::string point_cloud_data_identifier = "PCL";
@@ -220,7 +218,6 @@ int main(int argc, char** argv)
 				for (const auto name : point_cloud_data_type)
 					if (p.string().find(point_cloud_data_identifier + "_" + name) != std::string::npos)
 					{
-						//pass[name].push_back(p);
 						pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
 						PCD_Container::Data_List list(p.filename(), name);
 						std::cout << p.string() << std::endl;
@@ -241,19 +238,10 @@ int main(int argc, char** argv)
 							continue;
 						}
 						data[name][list.serial_number][list.character][list.num] = PCD_Container(temp, name, p.filename());
-						//data.push_back(std::make_pair(name, std::make_pair(list.serial_number, PCD_Container(temp, name, p.filename()))));
 						s_n.push_back(list.serial_number);
 						unique_numbers[name][list.character][list.num] = true;
 
 					}
-		//if (sys::is_regular_file(p))
-		//{ // ファイルなら...
-		//	std::cout << "file: " << p.filename() << std::endl;
-		//}
-		//else if (sys::is_directory(p))
-		//{ // ディレクトリなら...
-		//	std::cout << "dir.: " << p.string() << std::endl;
-		//}
 	});//↓シリアルナンバーの重複の削除
 	std::sort(s_n.begin(), s_n.end());
 	s_n.erase(std::unique(s_n.begin(), s_n.end()), s_n.end());
@@ -330,22 +318,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	//for (const auto& name : point_cloud_data_type)
-	//{
-	//	std::cout << name << std::endl;
-	//	for (const auto fullpass : pass.at(name))
-	//	{
-	//		pcl::PointCloud<pcl::PointXYZRGB>::Ptr temp(new pcl::PointCloud<pcl::PointXYZRGB>);
-	//		PCD_Container::Data_List list(fullpass.filename(), name);
-	//		std::cout << fullpass.string() << std::endl;
-	//		pcl::io::loadPCDFile(fullpass.string(), *temp);
-	//		data[name][list.serial_number].push_back(PCD_Container(temp, name, fullpass.filename()));
-	//		serial_numbers.push_back(list.serial_number);
-	//	}
-	//}
-
-
-
 	for (const auto& name : unique_numbers)
 	{
 		std::cout << "------------------" << name.first << "------------------" << std::endl;
@@ -391,33 +363,8 @@ int main(int argc, char** argv)
 				}
 			}
 			std::cout << std::endl;
-			//for (auto& datum : data.at(name).at(serial_number))//dataの単数形がdatumなんだって
-			//{
-				//for (auto&)
-					//datum.show_info();
-				//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, Eigen::Matrix4f::Identity());//, transformMat[i]
-			//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
-				//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_near.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat.at(itr->first));
-				//regist_near.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
-				//transformMat_once.at(itr->first) = transformMat_once.at(itr->first) * regist_once.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat_once.at(itr->first));
-				//regist_once.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
-			//}
 		}
 	}
-
-	//for (auto& data_type : data)
-	//{
-	//	for (int i = 1; i < s_n.size(); i++)
-	//	{
-	//		for (auto& data_char : data_type.second.at(s_n[i]))
-	//		{
-	//			for (auto& data_num : data_char.second)
-	//			{
-	//				pointcloudShifter(data_num.second.cloud, 0.3, 0.0, 0.0);
-	//			}
-	//		}
-	//	}
-	//}
 
 	for (const auto& c : unique_numbers.at("hand"))
 	{
@@ -481,15 +428,6 @@ int main(int argc, char** argv)
 					viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, "vp_4_" + sn, vp_4);
 #endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_4_" + sn, vp_4);
-					//if (unique_numbers.count("tip"))
-					//	if (unique_numbers.at("tip").count(c.first))
-					//		if (unique_numbers.at("tip").at(c.first).count(n.first))
-					//			if (unique_numbers.at("tip").at(c.first).at(n.first))
-					//			{
-					//				pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTip(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
-					//				viewer->addPointCloud(regist_hand_only.at(sn).at(c.first).at(n.first).at("handだけ").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud), customColorTip, "vp_1_tip_" + sn, vp_1);
-					//				viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_1_tip_" + sn, vp_1);
-					//			}
 
 					viewer->spinOnce();
 				}
@@ -601,53 +539,7 @@ int main(int argc, char** argv)
 					break;
 				}
 			}
+			return 0;
 		}
 	}
-
-	//fileName = get_file_path_in_dir(dataFolderPass, "pcd");
-
-	// Check user input
-	//if (data.empty())
-	//{
-	//	PCL_ERROR("Syntax is: %s <source.pcd> <target.pcd> [*]", argv[0]);
-	//	PCL_ERROR("[*] - multiple files can be added. The registration results of (i, i+1) will be registered against (i+2), etc");
-	//	return (-1);
-	//}
-
-	//param.showParameters();
-
-	//PCL_INFO("Loaded %d datasets.", (int)data.size());
-
-	//// Create a PCLVisualizer object
-	//auto p = new pcl::visualization::PCLVisualizer(argc, argv, "Pairwise Incremental Registration example");
-	//p->createViewPort(0.0, 0, 0.5, 1.0, vp_1);
-	//p->createViewPort(0.5, 0, 1.0, 1.0, vp_2);
-
-	//PointCloud::Ptr result(new PointCloud), source, target;
-	//Eigen::Matrix4f GlobalTransform = Eigen::Matrix4f::Identity(), pairTransform;
-
-	//for (size_t i = 1; i < data.size(); ++i)
-	//{
-	//	source = data[i - 1].cloud;
-	//	target = data[i].cloud;
-
-	//	// Add visualization data
-	//	showCloudsLeft(source, target);
-
-	//	PointCloud::Ptr temp(new PointCloud);
-	//	PCL_INFO("Aligning %s (%d) with %s (%d).\n", data[i - 1].f_name.c_str(), source->points.size(), data[i].f_name.c_str(), target->points.size());
-	//	pairAlign(source, target, temp, pairTransform, true);
-
-	//	//transform current pair into the global transform
-	//	pcl::transformPointCloud(*temp, *result, GlobalTransform);
-
-	//	//update the global transform
-	//	GlobalTransform = GlobalTransform * pairTransform;
-
-	//	//save aligned pair, transformed into the first cloud's frame
-	//	std::stringstream ss;
-	//	ss << i << ".pcd";
-	//	pcl::io::savePCDFile(ss.str(), *result, true);
-
-	//}
 }
