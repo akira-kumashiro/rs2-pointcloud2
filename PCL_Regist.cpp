@@ -291,7 +291,7 @@ Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const Poi
 		//if the difference between this transformation and the previous one
 		//is smaller than the threshold, refine the process by reducing
 		//the maximal correspondence distance
-		PCL_INFO("transformation distance:%e", fabs((reg.getLastIncrementalTransformation() - prev).sum()));
+		//PCL_INFO("transformation distance:%e", fabs((reg.getLastIncrementalTransformation() - prev).sum()));
 
 
 
@@ -299,7 +299,7 @@ Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const Poi
 			reg.setMaxCorrespondenceDistance(reg.getMaxCorrespondenceDistance() * (1.0 - random(0.0, 1.0 / param.loopNum)));
 		else
 			reg.setMaxCorrespondenceDistance(param.maxCorrespondenceDistance);
-		PCL_INFO(" score:%e correspondence distance:%lf\n", reg.getFitnessScore(), reg.getMaxCorrespondenceDistance());
+		//PCL_INFO(" score:%e correspondence distance:%lf\n", reg.getFitnessScore(), reg.getMaxCorrespondenceDistance());
 		if (fabs((reg.getLastIncrementalTransformation() - prev).sum()) == 0.0)
 			break;
 		//fitness score “_ŒQŠÔ‚Ì‹——£‚Ì2æ‚Ì‡Œv(ˆø”‚Å‘Î‰žŠÖŒW‚ðŒvŽZ‚·‚éÅ‘å‹——£‹——£‚ðÝ’è‚Å‚«‚é default‚Ídouble‚ÌÅ‘å’l)
@@ -309,8 +309,8 @@ Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const Poi
 		// visualize current state
 		//showCloudsRight(points_with_normals_tgt, points_with_normals_src);
 
-		if (param.loopNum >= 5)if (i % ((int)(param.loopNum / 5)) == 0)
-			print4x4Matrix(Ti);
+		//if (param.loopNum >= 5)if (i % ((int)(param.loopNum / 5)) == 0)
+		//	print4x4Matrix(Ti);
 
 		//if (fabs((reg.getLastIncrementalTransformation() - prev).sum()) == 0.0e+0)
 		//{
@@ -319,6 +319,7 @@ Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const Poi
 		//	//break;
 		//}
 	}
+	PCL_INFO(" score:%e correspondence distance:%lf\n", reg.getFitnessScore(), reg.getMaxCorrespondenceDistance());
 
 	//
 	// Get the transformation from target to source

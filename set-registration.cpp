@@ -29,6 +29,15 @@
 #include <filesystem> // std::tr2::sys::path etc.
 
 #include "PCL_Regist.h"
+//#define DISABLE_AUTO_COLORING
+
+#ifndef DISABLE_AUTO_COLORING
+//#define VP_1_ORIGINAL_COLOR
+//#define VP_2_ORIGINAL_COLOR
+//#define VP_3_ORIGINAL_COLOR
+#define VP_4_ORIGINAL_COLOR
+#endif
+
 
 ////https://qiita.com/tkymx/items/f9190c16be84d4a48f8a
 //std::vector<std::string> get_file_path_in_dir(const std::string& dir_name, const std::string& extension) noexcept(false)
@@ -163,7 +172,7 @@ int main(int argc, char** argv)
 	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;
 
 	Eigen::Matrix4f farMat;
-	farMat << 1.0, 0.0, 0.0, 0.1,
+	farMat << 1.0, 0.0, 0.0, 0.0,
 		0.0, 1.0, 0.0, 0.0,
 		0.0, 0.0, 1.0, 0.0,
 		0.0, 0.0, 0.0, 1.0;
@@ -439,28 +448,38 @@ int main(int argc, char** argv)
 						serialNumber = std::stoi(temp.substr(temp.size() - 8));
 					else
 						serialNumber = std::stoi(temp);
+#ifndef DISABLE_AUTO_COLORING
 					//int b = serialNumber % 256;
 					//int g = ((serialNumber - b) / 256 % 256);
 					//int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
 					int b = 0;
 					int g = (sn == "611203000018" ? 255 : 0);
 					int r = (sn != "611203000018" ? 255 : 0);
-
+#endif
 
 					//auto cloud = regist_hand_only.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud);
 					auto cloud = PCL_Regist::transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯"));
 
 					viewer->removePointCloud("vp_1_" + sn);
+#ifndef DISABLE_AUTO_COLORING
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColor(cloud, r, g, b);
+#endif
+#if !defined(VP_1_ORIGINAL_COLOR)&&!defined(DISABLE_AUTO_COLORING)
 					viewer->addPointCloud(cloud, customColor, "vp_1_" + sn, vp_1);
-					//viewer->addPointCloud(cloud, "vp_1_" + sn, vp_1);
-
+#else
+					viewer->addPointCloud(cloud, "vp_1_" + sn, vp_1);
+#endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_1_" + sn, vp_1);
 
 					viewer->removePointCloud("vp_4_" + sn);
+#ifndef DISABLE_AUTO_COLORING
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP4(data.at("hand").at(sn).at(c.first).at(n.first).cloud, r, g, b);
+#endif
+#if !defined(VP_4_ORIGINAL_COLOR)&&!defined(DISABLE_AUTO_COLORING)
 					viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, customColor, "vp_4_" + sn, vp_4);
-					//viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, "vp_4_" + sn, vp_4);
+#else
+					viewer->addPointCloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, "vp_4_" + sn, vp_4);
+#endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_4_" + sn, vp_4);
 					//if (unique_numbers.count("tip"))
 					//	if (unique_numbers.at("tip").count(c.first))
@@ -506,47 +525,68 @@ int main(int argc, char** argv)
 						serialNumber = std::stoi(temp.substr(temp.size() - 8));
 					else
 						serialNumber = std::stoi(temp);
+#ifndef DISABLE_AUTO_COLORING
 					//int b = serialNumber % 256;
 					//int g = ((serialNumber - b) / 256 % 256);
 					//int r = ((serialNumber - g * 256 - b) / 256 / 256) % 256;
 					int b = 0;
 					int g = (sn == "611203000018" ? 255 : 0);
 					int r = (sn != "611203000018" ? 255 : 0);
-
+#endif
 					auto cloudVP2 = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp"));
 					auto cloudVP2tip = regist_tip.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)-temp"));
-
-					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP2(cloudVP2, r, g, b);
+#ifndef DISABLE_AUTO_COLORING
+					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorVP2(cloudVP2, (int)r*0.5, (int)g*0.5, (int)b*0.5);
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP2(cloudVP2tip, r, g, b);
-
+#endif
 					viewer->removePointCloud("vp_2_" + sn);
 					viewer->removePointCloud("vp_2_tip_" + sn);
+#if !defined(VP_2_ORIGINAL_COLOR)&&!defined(DISABLE_AUTO_COLORING)
 					viewer->addPointCloud(cloudVP2, customColorVP2, "vp_2_" + sn, vp_2);
+#else
+					viewer->addPointCloud(cloudVP2, "vp_2_" + sn, vp_2);
+#endif
+#ifndef DISABLE_AUTO_COLORING
 					viewer->addPointCloud(cloudVP2tip, customColorTipVP2, "vp_2_tip_" + sn, vp_2);
-					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_2_" + sn, vp_2);
+#endif
+					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 0.1, "vp_2_" + sn, vp_2);
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_2_tip_" + sn, vp_2);
 
 					auto cloudVP3 = regist_hand_comp.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").transformPointcloud(data.at("hand").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
 					auto cloudVP3tip = regist_hand_comp.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, tMat.at(sn).at(c.first).at(n.first).at("tip->hand(Œ‡‘¹‚È‚µ)"));
-
+#ifndef DISABLE_AUTO_COLORING
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColor(cloudVP3, r, g, b);
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTip(cloudVP3tip, r, g, b);
-
+#endif
 					viewer->removePointCloud("vp_3_" + sn);
 					viewer->removePointCloud("vp_3_tip_" + sn);
+#if !defined(VP_3_ORIGINAL_COLOR)&&!defined(DISABLE_AUTO_COLORING)
 					viewer->addPointCloud(cloudVP3, customColor, "vp_3_" + sn, vp_3);
+#else
+					viewer->addPointCloud(cloudVP3, "vp_3_" + sn, vp_3);
+#endif
+#ifndef DISABLE_AUTO_COLORING
 					viewer->addPointCloud(cloudVP3tip, customColorTip, "vp_3_tip_" + sn, vp_3);
+#endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1.0, "vp_3_" + sn, vp_3);
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_3_tip_" + sn, vp_3);
 
 					viewer->removePointCloud("vp_1_tip_" + sn);
+#ifndef DISABLE_AUTO_COLORING
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP1(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
 					viewer->addPointCloud(regist_hand_only.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud), customColorTipVP1, "vp_1_tip_" + sn, vp_1);
+#else
+					viewer->addPointCloud(regist_hand_only.at(sn).at(c.first).at(n.first).at("hand‚¾‚¯").transformPointcloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud), "vp_1_tip_" + sn, vp_1);
+#endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_1_tip_" + sn, vp_1);
 
 					viewer->removePointCloud("vp_4_tip_" + sn);
+#ifndef DISABLE_AUTO_COLORING
 					pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZRGB> customColorTipVP4(data.at("tip").at(sn).at(c.first).at(n.first).cloud, r, g, b);
 					viewer->addPointCloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, customColorTipVP4, "vp_4_tip_" + sn, vp_4);
+#else
+					viewer->addPointCloud(data.at("tip").at(sn).at(c.first).at(n.first).cloud, "vp_4_tip_" + sn, vp_4);
+#endif
 					viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 20.0, "vp_4_tip_" + sn, vp_4);
 					viewer->spinOnce();
 				}

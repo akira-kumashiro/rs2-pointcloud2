@@ -59,8 +59,6 @@ void MultiRealSense::run()
 		// Key Check
 		if (!keyboardCallBackSettings(cv::waitKey(10)))
 			break;
-
-
 	}
 }
 
@@ -315,7 +313,7 @@ void MultiRealSense::setCameraAngle(void)
 		float degree;
 		itr->second->setLaserMax();
 		scanf_s("%f", &degree);
-		transformMat_once.emplace(itr->first,regist_once.at(itr->first).calcTransformMatrix(degree));
+		transformMat_once.emplace(itr->first, regist_once.at(itr->first).calcTransformMatrix(degree));
 		itr->second->setLaserMin();
 	}
 }
