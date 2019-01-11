@@ -235,14 +235,15 @@ int main(int argc, char** argv)
 						if (temp->size() < 5)
 						{
 							std::cout << "\"" << p.filename().string() << "\" is too small!" << std::endl;
+							unique_numbers[name][list.character][list.num] = false;
 							continue;
 						}
 						data[name][list.serial_number][list.character][list.num] = PCD_Container(temp, name, p.filename());
 						s_n.push_back(list.serial_number);
 						unique_numbers[name][list.character][list.num] = true;
-
 					}
-	});//↓シリアルナンバーの重複の削除
+	});
+	//↓シリアルナンバーの重複の削除
 	std::sort(s_n.begin(), s_n.end());
 	s_n.erase(std::unique(s_n.begin(), s_n.end()), s_n.end());
 
@@ -254,15 +255,28 @@ int main(int argc, char** argv)
 			{
 				for (const auto& serial_number : s_n)
 				{
-					if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
+					if (!(data.count(name.first)))
 					{
 						num.second = false;
+						continue;
 					}
+					if (!(data.at(name.first).count(serial_number)))
+					{
+						num.second = false;
+						continue;
+					}
+					if (!(data.at(name.first).at(serial_number).count(character.first)))
+					{
+						num.second = false;
+						continue;
+					}
+					if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
+						num.second = false;
 				}
-
 			}
 		}
 	}
+
 
 	{//tempを外に出したくないがためのかっこ
 		auto temp = unique_numbers;
@@ -276,20 +290,18 @@ int main(int argc, char** argv)
 					{
 						for (const auto& sn : s_n)
 						{
-							if (data.at(name.first).at(sn).at(c.first).count(n.first))
-							{
+							if (data.at(name.first).count(sn))if (data.at(name.first).at(sn).count(c.first))if (data.at(name.first).at(sn).at(c.first).count(n.first))
 								data.at(name.first).at(sn).at(c.first).erase(n.first);
 
-							}
 							for (const auto& matName : matNames)
 							{
 								if (matName == "handだけ")
 									continue;
 								else
 								{
-									if (tMat.at(sn).at(c.first).at(n.first).count(matName))
+									if (tMat.at(sn).count(c.first))if (tMat.at(sn).at(c.first).count(n.first))if (tMat.at(sn).at(c.first).at(n.first).count(matName))
 										tMat.at(sn).at(c.first).at(n.first).erase(matName);
-									if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
+									if (regist_tip.at(sn).count(c.first))if (regist_tip.at(sn).at(c.first).count(n.first))if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
 										regist_tip.at(sn).at(c.first).at(n.first).erase(matName);
 								}
 							}
@@ -303,21 +315,36 @@ int main(int argc, char** argv)
 										regist_hand_only.at(sn).at(c.first).at(n.first).erase(matName);
 									if (matName == "handだけ")
 										continue;
-									else
-									{
-										if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
-											regist_tip.at(sn).at(c.first).at(n.first).erase(matName);
-									}
+									else if (regist_tip.at(sn).at(c.first).at(n.first).count(matName))
+										regist_tip.at(sn).at(c.first).at(n.first).erase(matName);
 								}
 							}
 						}
 						unique_numbers.at(name.first).at(c.first).erase(n.first);
 					}
+					if (unique_numbers.at(name.first).at(c.first).size() == 0)
+						unique_numbers.at(name.first).erase(c.first);
 				}
+				if (unique_numbers.at(name.first).size() == 0)
+					unique_numbers.erase(name.first);
 			}
 		}
 	}
 
+	for (const auto& name : unique_numbers)
+	{
+		for (const auto& c : name.second)
+		{
+			for (const auto & n : c.second)
+			{
+				std::cout << name.first << c.first << n.first << std::to_string(n.second) << std::endl;
+			}
+			std::cout << name.first << c.first << std::to_string(c.second.size()) << std::endl;
+		}
+		std::cout << name.first << std::to_string(name.second.size()) << std::endl;
+	}
+
+	std::cout << "316" << std::endl;
 	for (const auto& name : unique_numbers)
 	{
 		std::cout << "------------------" << name.first << "------------------" << std::endl;
@@ -329,7 +356,10 @@ int main(int argc, char** argv)
 				std::cout << c.first << std::endl;
 				for (const auto& num : c.second)
 				{
+
+					std::cout << "前" << std::endl;
 					data.at(name.first).at(sn).at(c.first).at(num.first).show_info();
+					std::cout << "後" << std::endl;
 					for (const auto& matName : matNames)
 					{
 						std::cout << matName << ":";
