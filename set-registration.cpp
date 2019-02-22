@@ -38,38 +38,6 @@
 #define VP_4_ORIGINAL_COLOR
 #endif
 
-
-////https://qiita.com/tkymx/items/f9190c16be84d4a48f8a
-//std::vector<std::string> get_file_path_in_dir(const std::string& dir_name, const std::string& extension) noexcept(false)
-//{
-//	HANDLE hFind;
-//	WIN32_FIND_DATA win32fd;//defined at Windwos.h
-//	std::vector<std::string> file_names;
-//
-//	//拡張子の設定
-//	std::string search_name = dir_name + "\\*." + extension;
-//
-//	hFind = FindFirstFile(search_name.c_str(), &win32fd);
-//
-//	if (hFind == INVALID_HANDLE_VALUE) {
-//		throw std::runtime_error("file not found");
-//	}
-//
-//	do {
-//		if (win32fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-//		}
-//		else {
-//			file_names.push_back(win32fd.cFileName);
-//			printf("%s\n", file_names.back().c_str());
-//
-//		}
-//	} while (FindNextFile(hFind, &win32fd));
-//
-//	FindClose(hFind);
-//
-//	return file_names;
-//}
-
 class PCD_Container
 {
 public:
@@ -162,11 +130,10 @@ int main(int argc, char** argv)
 	//std::map<key,data> tempのとき
 	//temp[key]←あればアクセス，なければ作成
 	//temp.at(key)←あればアクセス，なければ例外
-	//std::vector<std::map<std::string, std::map<std::string, PCD_Container>>> data;
+
 	std::string dataFolderPass;
 	printf_s("data folder pass is:");
 	std::cin >> dataFolderPass;
-	//std::map<std::string, std::vector<sys::path>> pass;
 
 	//変換行列(シリアルナンバー(s_n)->文字->番号->行列の名前(matNames))
 	std::map<std::string, std::map<char, std::map<int, std::map<std::string, Eigen::Matrix4f>>>> tMat;
@@ -247,37 +214,6 @@ int main(int argc, char** argv)
 	std::sort(s_n.begin(), s_n.end());
 	s_n.erase(std::unique(s_n.begin(), s_n.end()), s_n.end());
 
-	//for (auto& name : unique_numbers)
-	//{
-	//	if (!name.second.size())
-	//		continue;
-	//	for (auto& character : name.second)
-	//	{
-	//		if (!character.second.size())
-	//			continue;
-	//		if (!(data.at(name.first).count(serial_number)))
-	//		{
-	//			num.second = false;
-	//			continue;
-	//		}
-	//		for (auto& num : character.second)
-	//		{
-	//			for (const auto& serial_number : s_n)
-	//			{
-
-	//				if (!(data.at(name.first).at(serial_number).count(character.first)))
-	//				{
-	//					num.second = false;
-	//					continue;
-	//				}
-	//				if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
-	//					num.second = false;
-	//			}
-	//		}
-	//	}
-	//}
-
-
 	{//tempを外に出したくないがためのかっこ
 		auto temp = unique_numbers;
 		for (auto&name : temp)//種類
@@ -344,7 +280,6 @@ int main(int argc, char** argv)
 		std::cout << name.first << std::to_string(name.second.size()) << std::endl;
 	}
 
-	std::cout << "316" << std::endl;
 	for (const auto& name : unique_numbers)
 	{
 		std::cout << "------------------" << name.first << "------------------" << std::endl;
@@ -356,7 +291,6 @@ int main(int argc, char** argv)
 				std::cout << c.first << std::endl;
 				for (const auto& num : c.second)
 				{
-
 					std::cout << "前" << std::endl;
 					data.at(name.first).at(sn).at(c.first).at(num.first).show_info();
 					std::cout << "後" << std::endl;
