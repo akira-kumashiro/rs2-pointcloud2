@@ -225,7 +225,7 @@ int main(int argc, char** argv)
 						for (const auto& matName : matNames)
 						{
 							tMat[list.serial_number][list.character][list.num][matName] = Eigen::Matrix4f::Identity();
-							regist_hand_only[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.2, 50, 10, 2.0e-3));
+							regist_hand_only[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-2, 0.2, 50, 100, 2.0e-3));
 							if (matName != "hand‚¾‚¯")
 							{
 								regist_tip[list.serial_number][list.character][list.num].emplace(matName, PCL_Regist(1e-20, 1.0, 500, 20, 0.0));
@@ -247,35 +247,35 @@ int main(int argc, char** argv)
 	std::sort(s_n.begin(), s_n.end());
 	s_n.erase(std::unique(s_n.begin(), s_n.end()), s_n.end());
 
-	for (auto& name : unique_numbers)
-	{
-		for (auto& character : name.second)
-		{
-			for (auto& num : character.second)
-			{
-				for (const auto& serial_number : s_n)
-				{
-					if (!(data.count(name.first)))
-					{
-						num.second = false;
-						continue;
-					}
-					if (!(data.at(name.first).count(serial_number)))
-					{
-						num.second = false;
-						continue;
-					}
-					if (!(data.at(name.first).at(serial_number).count(character.first)))
-					{
-						num.second = false;
-						continue;
-					}
-					if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
-						num.second = false;
-				}
-			}
-		}
-	}
+	//for (auto& name : unique_numbers)
+	//{
+	//	if (!name.second.size())
+	//		continue;
+	//	for (auto& character : name.second)
+	//	{
+	//		if (!character.second.size())
+	//			continue;
+	//		if (!(data.at(name.first).count(serial_number)))
+	//		{
+	//			num.second = false;
+	//			continue;
+	//		}
+	//		for (auto& num : character.second)
+	//		{
+	//			for (const auto& serial_number : s_n)
+	//			{
+
+	//				if (!(data.at(name.first).at(serial_number).count(character.first)))
+	//				{
+	//					num.second = false;
+	//					continue;
+	//				}
+	//				if (!(data.at(name.first).at(serial_number).at(character.first).count(num.first)))
+	//					num.second = false;
+	//			}
+	//		}
+	//	}
+	//}
 
 
 	{//temp‚ğŠO‚Éo‚µ‚½‚­‚È‚¢‚ª‚½‚ß‚Ì‚©‚Á‚±

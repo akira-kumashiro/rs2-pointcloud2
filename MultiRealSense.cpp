@@ -177,8 +177,8 @@ bool MultiRealSense::keyboardCallBackSettings(int key)
 				continue;
 			}
 			//transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, Eigen::Matrix4f::Identity());//, transformMat[i]
-			transformMat.at(itr->first) = transformMat.at(itr->first) * regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
-			transformMat.at(itr->first) = transformMat.at(itr->first) * regist_near.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat.at(itr->first));
+			transformMat.at(itr->first) = regist_tip.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("tip").cloud, itr->second->clouds.at("tip").cloud, transformMat.at(itr->first));
+			transformMat.at(itr->first) = regist_near.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat.at(itr->first));
 			//regist_near.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);
 			//transformMat_once.at(itr->first) = transformMat_once.at(itr->first) * regist_once.at(itr->first).getTransformMatrix(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud, transformMat_once.at(itr->first));
 			//regist_once.at(itr->first).calcCenterOfGravity(beginItr->second->clouds.at("hand").cloud, itr->second->clouds.at("hand").cloud);

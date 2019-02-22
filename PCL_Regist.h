@@ -114,9 +114,8 @@ public:
 	static void print4x4Matrix(const Eigen::Matrix4f & matrix);
 private:
 	//void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<PCD> > &models);
-	Eigen::Matrix4f calcTransformCombined(const Eigen::Matrix4f a, const Eigen::Matrix4f b);
 	double random(double min, double max);
-	Eigen::Matrix4f pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, const Eigen::Matrix4f initial_transform);
+	Eigen::Matrix4f pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output);
 	PointNormalT calcAverage(const PointCloud::Ptr cloud);
 	inline float isNan(float num);
 };

@@ -24,7 +24,7 @@ Eigen::Matrix4f PCL_Regist::getTransformMatrix(const PointCloud::Ptr cloud_sourc
 	PointCloud::Ptr temp(new PointCloud);
 	PCL_INFO("Aligning (%d) with (%d).\n", source->points.size(), target->points.size());
 	//transformMat = prevTransformation * pairAlign(source, target, temp, Eigen::Matrix4f::Identity());
-	transformMat = pairAlign(source, target, temp, Eigen::Matrix4f::Identity())*prevTransformation;
+	transformMat = pairAlign(source, target, temp)*prevTransformation;
 
 	//transformMat = calcTransformCombined(prevTransformation, pairAlign(source, target, temp, Eigen::Matrix4f::Identity()));
 	//transform current pair into the global transform
@@ -159,36 +159,6 @@ void PCL_Regist::print4x4Matrix(const Eigen::Matrix4f & matrix)
 	printf("|R|=%f\n", scale);
 }
 
-Eigen::Matrix4f PCL_Regist::calcTransformCombined(const Eigen::Matrix4f a, const Eigen::Matrix4f b)
-{
-	Eigen::Matrix3f small_a, small_b, temp;
-	Eigen::Matrix4f output;
-	for (int y = 0; y < 3; y++)
-	{
-		for (int x = 0; x < 3; x++)
-		{
-			small_a(y, x) = a(y, x);
-			small_b(y, x) = b(y, x);
-		}
-	}
-	temp = small_a * small_b;
-	for (int y = 0; y < 4; y++)
-	{
-		for (int x = 0; x < 4; x++)
-		{
-			if (x < 3 && y < 3)
-			{
-				output(y, x) = temp(y, x);
-			}
-			else if (x != 3 || y != 3)
-			{
-				output(y, x) = b(y, x) - a(y, x);
-			}
-		}
-	}
-	return Eigen::Matrix4f();
-}
-
 double PCL_Regist::random(double min, double max)
 {
 	std::random_device rnd;
@@ -204,7 +174,7 @@ double PCL_Regist::random(double min, double max)
 * \param output the resultant aligned source PointCloud
 * \param final_transform the resultant transform between source and target
 */
-Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, const Eigen::Matrix4f initial_transform)
+Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output)
 {
 	PointCloud::Ptr src(new PointCloud);
 	PointCloud::Ptr tgt(new PointCloud);
@@ -269,7 +239,7 @@ Eigen::Matrix4f PCL_Regist::pairAlign(const PointCloud::Ptr cloud_src, const Poi
 	//
 	// Run the same optimization in a loop and visualize the results
 	//Eigen::Matrix4f Ti = Eigen::Matrix4f::Identity(), prev, targetToSource;
-	Eigen::Matrix4f Ti = initial_transform.inverse(), prev, targetToSource;
+	Eigen::Matrix4f Ti = Eigen::Matrix4f::Identity(), prev, targetToSource;
 	print4x4Matrix(Ti);
 	PointCloudWithNormals::Ptr reg_result = points_with_normals_src;
 	reg.setMaximumIterations(param.maximumIterations);//Å‘å”½•œ‰ñ”
